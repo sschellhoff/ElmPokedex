@@ -1,0 +1,14 @@
+{
+  "name": "wind2heat-frontend",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "serve": "./node_modules/elm/bin/elm reactor",
+    "format": "./node_modules/elm-format/bin/elm-format src"
+  },
+  "dependencies": {},
+  "devDependencies": {
+    "elm": "^0.19.1-5",
+    "elm-format": "^0.8.5"
+  }
+}
