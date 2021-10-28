@@ -1,137 +1,94 @@
 module Main exposing (main)
 
 import Browser
-import Html exposing (Html, a, div, h1, img, li, span, text, ul)
+import Browser.Navigation as Nav
+import Details
+import Html exposing (Html, div, text)
 import Html.Attributes exposing (..)
-import Http
-import Json.Decode
+import Overview
+import Url
 
-
-type alias PokemonInfo =
-    { name : String
-    , url : String
-    }
-
-type alias PokemonDetails =
-    { id: Int
-    , name: String
-    , height: Int
-    , weight: Int
-    , baseExp: Int
-    , sprite: String
-    }
-
-type ApplicationState
-    = Loading
-    | Overview (List PokemonInfo)
-    | Error String
-    | Details PokemonDetails
-
+type State
+    = Overview Overview.Model
+    | Details Details.Model
+    | Blank
 
 type alias Model =
-    { state : ApplicationState
+    { state: State
+    , key: Nav.Key
     }
 
 
 type Msg
-    = ShowOverview
-    | ShowPokemonDetails
-    | GotOverview (Result Http.Error (List PokemonInfo))
+    = GotOverviewMsg Overview.Msg
+    | GotDetailsMsg Details.Msg
+    | UrlChanged Url.Url
+    | LinkClicked Browser.UrlRequest
 
 
-view : Model -> Html Msg
+view : Model -> Browser.Document Msg
 view model =
-    div [ class "content" ] <| renderModel model
-
-
-renderModel : Model -> List (Html Msg)
-renderModel model =
-    case model.state of
-        Loading ->
-            [ h1 [] [ text "Loading" ] ]
-
-        Overview pokemonInfos ->
-            renderOverview pokemonInfos
-
-        Error msg ->
-            [ h1 [] [ text msg ] ]
-
-        Details pokemonDetails ->
-            renderPokemonDetails pokemonDetails
-
-
-renderOverview : List PokemonInfo -> List (Html Msg)
-renderOverview pokemonList =
-    [ h1 [] [ text "Pokedex" ]
-    , ul [] <| List.map renderPokemonInfo pokemonList
-    ]
-
-
-renderPokemonInfo : PokemonInfo -> Html Msg
-renderPokemonInfo pokemonInfo =
-    li [] [ a [ href pokemonInfo.url ] [ text pokemonInfo.name ] ]
-
-renderPokemonDetails : PokemonDetails -> List (Html Msg)
-renderPokemonDetails pokemonDetails =
-    [ h1 [] [ text pokemonDetails.name ]
-    , renderPokemonDetail "no" pokemonDetails.id
-    , renderPokemonDetail "height" pokemonDetails.height
-    , renderPokemonDetail "weight" pokemonDetails.weight
-    , renderPokemonDetail "base exp." pokemonDetails.baseExp
-    , img [ src pokemonDetails.sprite ] []
-    ]
-
-renderPokemonDetail : String -> Int -> Html Msg
-renderPokemonDetail fieldName fieldValue =
-    div []
-    [ span [] [ text fieldName ]
-    , span [] [ text <| String.fromInt fieldValue ]
-    ]
+    let
+        content =
+            case model.state of
+                Blank -> div [] [ text "Nothing to see here" ]
+                Overview state -> Overview.view state |> Html.map GotOverviewMsg
+                Details state -> Details.view state |> Html.map GotDetailsMsg
+    in
+        { title = "Pokedex"
+        , body = [ div [ class "content" ] <| [ content ] ]
+        }
 
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
     case msg of
-        ShowOverview ->
-            ( model, Cmd.none )
+        LinkClicked urlRequest ->
+            case urlRequest of
+                Browser.Internal url ->
+                    case url.fragment of
+                        Nothing -> ( model, Cmd.none)
+                        Just _ -> ( model, Nav.pushUrl model.key <| Url.toString url )
+                Browser.External href -> ( model, Nav.load href )
 
-        ShowPokemonDetails ->
-            ( model, Cmd.none )
+        UrlChanged url ->
+            let (overviewModel, overviewMessage) = Overview.init () url model.key
+            in ({model | state = Overview overviewModel}, Cmd.map GotOverviewMsg overviewMessage)
 
-        GotOverview result ->
-            case result of
-                Ok response ->
-                    ( { model | state = Overview response }, Cmd.none )
-
-                Err _ ->
-                    ( { model | state = Error "Server error!" }, Cmd.none )
-
-
-getOverview : Cmd Msg
-getOverview =
-    Http.get
-        { url = "https://pokeapi.co/api/v2/pokemon/"
-        , expect = Http.expectJson GotOverview decodeOverviewResponse
-        }
-
-
-decodeOverviewResponse : Json.Decode.Decoder (List PokemonInfo)
-decodeOverviewResponse =
-    Json.Decode.field "results" (Json.Decode.list decodePokemonInfo)
+        GotOverviewMsg overviewMessage ->
+            case model.state of
+                Overview overviewModel ->
+                    updateStateWith Overview GotOverviewMsg model <| Overview.update overviewMessage overviewModel
+                _ -> ( model, Cmd.none )
+        GotDetailsMsg detailsMessage ->
+            case model.state of
+                Details detailsModel ->
+                    updateStateWith Details GotDetailsMsg model <| Details.update detailsMessage detailsModel
+                _ -> ( model, Cmd.none )
 
 
-decodePokemonInfo : Json.Decode.Decoder PokemonInfo
-decodePokemonInfo =
-    Json.Decode.map2
-        (\name url -> { name = name, url = url })
-        (Json.Decode.field "name" Json.Decode.string)
-        (Json.Decode.field "url" Json.Decode.string)
+init : () -> Url.Url -> Nav.Key -> ( Model, Cmd Msg )
+init flags url key =
+    updateStateWith Details GotDetailsMsg ( initialModel key ) <| Details.init flags url key
 
+initialModel : Nav.Key -> Model
+initialModel key = {state = Blank, key = key}
+
+updateStateWith : (subModel -> State) -> (subMsg -> Msg) -> Model -> (subModel, Cmd subMsg) -> (Model, Cmd Msg)
+updateStateWith toModel toMsg model (subModel, subCmd) =
+    ({model | state = toModel subModel}
+    , Cmd.map toMsg subCmd
+    )
+
+initBlank flags url key =
+    ({ state = Blank, key = key }, Cmd.none )
 
 main : Program () Model Msg
 main =
-    Browser.element
-        { init = \_ -> ( { state = Loading }, getOverview )
+    Browser.application
+        { init = init
         , view = view
         , update = update
         , subscriptions = \_ -> Sub.none
+        , onUrlChange = UrlChanged
+        , onUrlRequest = LinkClicked
         }
