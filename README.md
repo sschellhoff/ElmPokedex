@@ -9,3 +9,5 @@ build with `npm run build`
 start server with `npm run serve`
 
 auto-format elm code with `npm run format`
+
+rebuild on change `npm run watch`

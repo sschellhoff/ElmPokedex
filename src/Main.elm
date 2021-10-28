@@ -36,7 +36,7 @@ view model =
             case model.state of
                 Blank ->
                     div []
-                        [ span [] [ text "Nothing to see here just visit the " ]
+                        [ span [] [ text "Nothing to see here, just visit the " ]
                         , a [ href "/pokemon" ] [ text "Pokedex" ]
                         ]
 
