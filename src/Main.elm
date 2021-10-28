@@ -6,7 +6,8 @@ import Details
 import Html exposing (Html, div, text)
 import Html.Attributes exposing (..)
 import Overview
-import Url
+import Url exposing (Url)
+import Url.Parser as Parser exposing ((</>), Parser, s)
 
 type State
     = Overview Overview.Model
@@ -45,14 +46,14 @@ update msg model =
         LinkClicked urlRequest ->
             case urlRequest of
                 Browser.Internal url ->
-                    case url.fragment of
-                        Nothing -> ( model, Cmd.none)
-                        Just _ -> ( model, Nav.pushUrl model.key <| Url.toString url )
+                    ( model, Nav.pushUrl model.key <| Url.toString url )
                 Browser.External href -> ( model, Nav.load href )
 
         UrlChanged url ->
-            let (overviewModel, overviewMessage) = Overview.init () url model.key
-            in ({model | state = Overview overviewModel}, Cmd.map GotOverviewMsg overviewMessage)
+            let (state, me) = urlToState url
+            in ({model | state = state}, me)
+            --let (overviewModel, overviewMessage) = Overview.init () url model.key
+            --in ({model | state = Overview overviewModel}, Cmd.map GotOverviewMsg overviewMessage)
 
         GotOverviewMsg overviewMessage ->
             case model.state of
@@ -67,11 +68,9 @@ update msg model =
 
 
 init : () -> Url.Url -> Nav.Key -> ( Model, Cmd Msg )
-init flags url key =
-    updateStateWith Details GotDetailsMsg ( initialModel key ) <| Details.init flags url key
-
-initialModel : Nav.Key -> Model
-initialModel key = {state = Blank, key = key}
+init _ url key =
+    let (mo, me) = urlToState url
+    in ({state = mo, key = key}, me)
 
 updateStateWith : (subModel -> State) -> (subMsg -> Msg) -> Model -> (subModel, Cmd subMsg) -> (Model, Cmd Msg)
 updateStateWith toModel toMsg model (subModel, subCmd) =
@@ -79,8 +78,27 @@ updateStateWith toModel toMsg model (subModel, subCmd) =
     , Cmd.map toMsg subCmd
     )
 
-initBlank flags url key =
-    ({ state = Blank, key = key }, Cmd.none )
+initStateWith : (subModel -> State) -> (subMsg -> Msg) -> (subModel, Cmd subMsg) -> (State, Cmd Msg)
+initStateWith toModel toMsg (subModel, subCmd) =
+    ( toModel subModel
+    , Cmd.map toMsg subCmd
+    )
+
+initBlank : (State, Cmd Msg)
+initBlank = (Blank, Cmd.none)
+
+urlToState : Url -> (State, Cmd Msg)
+urlToState url =
+    Parser.parse parser url
+        |> Maybe.withDefault initBlank
+
+parser : Parser ((State, Cmd Msg) -> a) a
+parser =
+    Parser.oneOf
+        [ Parser.map initBlank Parser.top
+        , Parser.map ( initStateWith Overview GotOverviewMsg (Overview.initialState 0) ) (s "pokemon")
+        , Parser.map (\no -> ( initStateWith Details GotDetailsMsg (Details.initialState no))) (s "pokemon" </> Parser.int)
+        ]
 
 main : Program () Model Msg
 main =

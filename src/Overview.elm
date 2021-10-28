@@ -1,25 +1,17 @@
-module Overview exposing (Model, PokemonInfo, Msg, view, update, init)
+module Overview exposing (Model, PokemonInfo, Msg, view, update, initialState)
 
 
 import Browser
-import Browser.Navigation as Nav
 import Html exposing (Html, a, div, h1, li, text, ul)
 import Html.Attributes exposing (href)
 import Http
 import Json.Decode
-import Url
-
-type Lazy a
-    = Loading
-    | Finished a
-    | Error String
-
+import Lazy exposing(..)
 
 type alias PokemonInfo =
     { name : String
     , url : String
     }
-
 
 type alias Model =
     { pokemonList : Lazy (List PokemonInfo)
@@ -32,9 +24,9 @@ type Msg
 view : Model -> Html Msg
 view model =
     case model.pokemonList of
-        Loading -> div [] [ text "loading..." ]
-        Finished pokemonList -> div [] <| renderPokemonList pokemonList
-        Error msg -> h1 [] [ text msg ]
+        Lazy.Loading -> div [] [ text "loading..." ]
+        Lazy.Finished pokemonList -> div [] <| renderPokemonList pokemonList
+        Lazy.Error msg -> h1 [] [ text msg ]
 
 renderPokemonList : List PokemonInfo -> List (Html Msg)
 renderPokemonList pokemonList =
@@ -75,13 +67,25 @@ decodeOverviewResponse =
 decodePokemonInfo : Json.Decode.Decoder PokemonInfo
 decodePokemonInfo =
     Json.Decode.map2
-        (\name url -> { name = name, url = url })
+        (\name url -> { name = name, url = getPokemonDetailUrl url })
         (Json.Decode.field "name" Json.Decode.string)
         (Json.Decode.field "url" Json.Decode.string)
 
-init : () -> Url.Url -> Nav.Key -> ( Model, Cmd Msg )
-init flags url key =
-    ({ pokemonList = Loading }, loadOverview 0 )
+getPokemonDetailUrl : String -> String
+getPokemonDetailUrl url =
+    String.concat ["", getPokemonNumberFromDetailUrl url]
+
+getPokemonNumberFromDetailUrl : String -> String
+getPokemonNumberFromDetailUrl url =
+    Maybe.withDefault "1" <| beforeLast <| String.split "/" url
+
+beforeLast : List a -> Maybe a
+beforeLast elements =
+    Maybe.andThen List.head <| List.tail <| List.reverse elements
+
+initialState : Int -> (Model, Cmd Msg)
+initialState page =
+    ({ pokemonList = Loading }, loadOverview page )
 
 main : Program () Model Msg
 main =

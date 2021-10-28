@@ -1,17 +1,12 @@
-module Details exposing (Model, PokemonDetails, Msg, view, update, init)
+module Details exposing (Model, PokemonDetails, Msg, view, update, initialState)
 
 import Browser
-import Browser.Navigation as Nav
 import Html exposing (Html, div, h1, img, span, text)
 import Html.Attributes exposing (src)
 import Http
 import Json.Decode
+import Lazy exposing (Lazy)
 import String exposing (concat)
-import Url
-type Lazy a
-    = Loading
-    | Finished a
-    | Error String
 
 type alias PokemonDetails =
     { id: Int
@@ -33,17 +28,17 @@ type Msg
 view : Model -> Html Msg
 view model =
     case model.pokemonDetails of
-        Loading -> div [] [ text "loading..." ]
-        Finished pokemonDetails -> div [] <| renderPokemonDetails pokemonDetails
-        Error msg -> h1 [] [ text msg ]
+        Lazy.Loading -> div [] [ text "loading..." ]
+        Lazy.Finished pokemonDetails -> div [] <| renderPokemonDetails pokemonDetails
+        Lazy.Error msg -> h1 [] [ text msg ]
 
 renderPokemonDetails : PokemonDetails -> List (Html Msg)
 renderPokemonDetails pokemonDetails =
     [ h1 [] [ text pokemonDetails.name ]
-    , renderPokemonDetail "no" pokemonDetails.id
-    , renderPokemonDetail "height" pokemonDetails.height
-    , renderPokemonDetail "weight" pokemonDetails.weight
-    , renderPokemonDetail "base exp." pokemonDetails.baseExp
+    , renderPokemonDetail "no: " pokemonDetails.id
+    , renderPokemonDetail "height: " pokemonDetails.height
+    , renderPokemonDetail "weight: " pokemonDetails.weight
+    , renderPokemonDetail "base experience: " pokemonDetails.baseExp
     , img [ src pokemonDetails.sprite ] []
     ]
 
@@ -62,9 +57,9 @@ update msg model =
         GotResult result ->
             case result of
                 Ok data ->
-                    ({model | pokemonDetails = Finished data}, Cmd.none)
+                    ({model | pokemonDetails = Lazy.Finished data}, Cmd.none)
                 Err _ ->
-                    ({model | pokemonDetails = Error "Could not load data"}, Cmd.none)
+                    ({model | pokemonDetails = Lazy.Error "Could not load data"}, Cmd.none)
 
 loadDetails : Int -> Cmd Msg
 loadDetails number =
@@ -84,14 +79,14 @@ decodeDetailsResponse =
         (Json.Decode.field "base_experience" Json.Decode.int)
         (Json.Decode.field "sprites" <| Json.Decode.field "front_default" Json.Decode.string)
 
-init : () -> Url.Url -> Nav.Key -> ( Model, Cmd Msg )
-init flags url key =
-    ({ pokemonDetails = Loading }, loadDetails 1 )
+initialState : Int -> (Model, Cmd Msg)
+initialState no =
+    ({ pokemonDetails = Lazy.Loading }, loadDetails no )
 
 main : Program () Model Msg
 main =
     Browser.element
-        { init = \_ -> ({ pokemonDetails = Loading}, loadDetails 1)
+        { init = \_ -> ({ pokemonDetails = Lazy.Loading}, loadDetails 1)
         , view = view
         , update = update
         , subscriptions = \_ -> Sub.none

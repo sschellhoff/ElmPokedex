@@ -1,0 +1,31 @@
+body { font-family: Verdana; background-color: rgb(44, 44, 44); color: rgb(250, 250, 250); }
+.large { width: 500px; float: right; }
+.selected { margin: 0; border: 6px solid #60b5cc; }
+.content { margin: 40px auto; width: 960px; }
+
+a:link, a:hover, a:active, a:visited { color: #6db6da; }
+h1 { color: #60b5cc; margin-bottom: 0; }
+h3 { float: left; margin: 0 }
+label { vertical-align: bottom; }
+button {
+    float: right; background-color: #60b5cc; border: 0; color: rgb(44, 44, 44);
+    font-size: 24px;
+    cursor: pointer;
+    padding: 10px 30px;
+}
+
+button:hover {
+    background-color: white;
+}
+
+.activity {
+    position: absolute;
+    top: 40px;
+    right: 100px;
+}
+
+.content::after {
+    content: "";
+    display: table;
+    clear: both;
+}
