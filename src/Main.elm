@@ -3,7 +3,7 @@ module Main exposing (main)
 import Browser
 import Browser.Navigation as Nav
 import Details
-import Html exposing (Html, div, text)
+import Html exposing (Html, a, div, span, text)
 import Html.Attributes exposing (..)
 import Overview
 import Url exposing (Url)
@@ -35,7 +35,10 @@ view model =
         content =
             case model.state of
                 Blank ->
-                    div [] [ text "Nothing to see here" ]
+                    div []
+                        [ span [] [ text "Nothing to see here just visit the " ]
+                        , a [ href "/pokemon" ] [ text "Pokedex" ]
+                        ]
 
                 Overview state ->
                     Overview.view state |> Html.map GotOverviewMsg
@@ -108,7 +111,7 @@ initStateWith toModel toMsg ( subModel, subCmd ) =
 
 initBlank : ( State, Cmd Msg )
 initBlank =
-    ( Blank, Cmd.none  )
+    ( Blank, Cmd.none )
 
 
 urlToState : Url -> ( State, Cmd Msg )

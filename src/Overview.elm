@@ -87,7 +87,7 @@ decodePokemonInfo =
 
 getPokemonDetailUrl : String -> String
 getPokemonDetailUrl url =
-    String.concat [ "", getPokemonNumberFromDetailUrl url ]
+    String.concat [ "pokemon/", getPokemonNumberFromDetailUrl url ]
 
 
 getPokemonNumberFromDetailUrl : String -> String
