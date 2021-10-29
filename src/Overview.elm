@@ -10,7 +10,7 @@ import Lazy exposing (..)
 
 type alias PokemonInfo =
     { name : String
-    , url : String
+    , no : Maybe Int
     }
 
 
@@ -46,7 +46,17 @@ renderPokemonList pokemonList =
 
 renderPokemonInfo : PokemonInfo -> Html Msg
 renderPokemonInfo pokemonInfo =
-    li [] [ a [ href pokemonInfo.url ] [ text pokemonInfo.name ] ]
+    case pokemonInfo.no of
+        Just no ->
+            li [] [ a [ href <| getPokemonDetailUrl no ] [ text <| String.concat [ String.fromInt no, ": ", pokemonInfo.name ] ] ]
+
+        Nothing ->
+            li [] [ text <| String.concat [ "x: ", pokemonInfo.name ] ]
+
+
+getPokemonDetailUrl : Int -> String
+getPokemonDetailUrl no =
+    String.concat [ "pokemon/", String.fromInt no ]
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
@@ -80,19 +90,14 @@ decodeOverviewResponse =
 decodePokemonInfo : Json.Decode.Decoder PokemonInfo
 decodePokemonInfo =
     Json.Decode.map2
-        (\name url -> { name = name, url = getPokemonDetailUrl url })
+        (\name url -> { name = name, no = getPokemonNumberFromDetailUrl url })
         (Json.Decode.field "name" Json.Decode.string)
         (Json.Decode.field "url" Json.Decode.string)
 
 
-getPokemonDetailUrl : String -> String
-getPokemonDetailUrl url =
-    String.concat [ "pokemon/", getPokemonNumberFromDetailUrl url ]
-
-
-getPokemonNumberFromDetailUrl : String -> String
+getPokemonNumberFromDetailUrl : String -> Maybe Int
 getPokemonNumberFromDetailUrl url =
-    Maybe.withDefault "1" <| beforeLast <| String.split "/" url
+    Maybe.andThen String.toInt <| beforeLast <| String.split "/" url
 
 
 beforeLast : List a -> Maybe a
