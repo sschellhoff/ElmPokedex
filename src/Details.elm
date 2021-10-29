@@ -1,8 +1,8 @@
 module Details exposing (Model, Msg, PokemonDetails, initialState, update, view)
 
 import Browser
-import Html exposing (Html, div, h1, img, span, text)
-import Html.Attributes exposing (src)
+import Html exposing (Html, a, div, h1, img, span, text)
+import Html.Attributes exposing (href, src)
 import Http
 import Json.Decode
 import Lazy exposing (Lazy)
@@ -31,6 +31,14 @@ type Msg
 
 view : Model -> Html Msg
 view model =
+    div []
+        [ a [ href "/pokemon" ] [ text "back" ]
+        , renderContent model
+        ]
+
+
+renderContent : Model -> Html Msg
+renderContent model =
     case model.pokemonDetails of
         Lazy.Loading ->
             div [] [ text "loading..." ]

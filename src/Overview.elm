@@ -52,8 +52,8 @@ renderPokemonInfo pokemonInfo =
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
     case msg of
-        Load page ->
-            ( model, loadOverview page )
+        Load pageSize ->
+            ( model, loadOverview pageSize )
 
         GotResult result ->
             case result of
@@ -65,9 +65,9 @@ update msg model =
 
 
 loadOverview : Int -> Cmd Msg
-loadOverview page =
+loadOverview pageSize =
     Http.get
-        { url = "https://pokeapi.co/api/v2/pokemon/"
+        { url = String.concat [ "https://pokeapi.co/api/v2/pokemon?limit=", String.fromInt pageSize ]
         , expect = Http.expectJson GotResult decodeOverviewResponse
         }
 
@@ -101,14 +101,14 @@ beforeLast elements =
 
 
 initialState : Int -> ( Model, Cmd Msg )
-initialState page =
-    ( { pokemonList = Loading }, loadOverview page )
+initialState pageSize =
+    ( { pokemonList = Loading }, loadOverview pageSize )
 
 
 main : Program () Model Msg
 main =
     Browser.element
-        { init = \_ -> ( { pokemonList = Loading }, loadOverview 0 )
+        { init = \_ -> ( { pokemonList = Loading }, loadOverview 151 )
         , view = view
         , update = update
         , subscriptions = \_ -> Sub.none

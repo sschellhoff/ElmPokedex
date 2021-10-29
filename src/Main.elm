@@ -124,7 +124,7 @@ parser : Parser (( State, Cmd Msg ) -> a) a
 parser =
     Parser.oneOf
         [ Parser.map initBlank Parser.top
-        , Parser.map (initStateWith Overview GotOverviewMsg (Overview.initialState 0)) (s "pokemon")
+        , Parser.map (initStateWith Overview GotOverviewMsg (Overview.initialState 151)) (s "pokemon")
         , Parser.map (\no -> initStateWith Details GotDetailsMsg (Details.initialState no)) (s "pokemon" </> Parser.int)
         ]
 
